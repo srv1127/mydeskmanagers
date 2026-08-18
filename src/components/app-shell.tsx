@@ -29,8 +29,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TrialBanner, TrialExpiredScreen, TrialWelcomeDialog } from "@/components/trial-gate";
 import { useAuth, useTheme } from "@/lib/auth";
-import { duesFor, feeStatusFor, seatStatus, useLibrary } from "@/lib/library-store";
+import { duesFor, feeStatusFor, formatMonth, monthKey, seatStatus, useLibrary } from "@/lib/library-store";
+import { whatsappReminderUrl } from "@/lib/receipt";
+import { useTrial } from "@/lib/trial";
 import { cn } from "@/lib/utils";
 
 const NAV = [
