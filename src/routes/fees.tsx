@@ -232,17 +232,29 @@ function FeesPage() {
                           <FeeBadge status={status} />
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="rounded-full"
-                            onClick={() => {
-                              setEditId(null);
-                              setOpen(true);
-                            }}
-                          >
-                            Collect
-                          </Button>
+                          <div className="flex justify-end gap-1.5">
+                            {due > 0 && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full border-success/40 text-success hover:bg-success-soft"
+                                onClick={() => sendReminder(student.id)}
+                              >
+                                <MessageCircle className="mr-1.5 h-4 w-4" /> Remind
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              className="rounded-full"
+                              onClick={() => {
+                                setEditId(null);
+                                setCollectFor(student.id);
+                                setOpen(true);
+                              }}
+                            >
+                              Collect
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
