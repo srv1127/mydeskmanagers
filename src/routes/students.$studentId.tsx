@@ -229,11 +229,10 @@ function StudentProfile() {
                               <div className="flex justify-end gap-1">
                                 <Button
                                   size="sm"
-                                  variant="ghost"
                                   className="rounded-full"
-                                  onClick={() => printReceipt(p.id)}
+                                  onClick={() => openReceipt(p.id)}
                                 >
-                                  Print
+                                  <Printer className="mr-1.5 h-4 w-4" /> Receipt
                                 </Button>
                                 <Button
                                   size="icon"
