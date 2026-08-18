@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageCircle,
   Moon,
   Search,
   Settings as SettingsIcon,
@@ -129,18 +130,39 @@ function NotificationsBell() {
             <p className="text-sm font-medium">Vacant seats</p>
             <p className="text-xs text-muted-foreground">{vacant} seats available to assign</p>
           </div>
-          {overdue.slice(0, 4).map((s) => (
-            <Link
-              key={s.id}
-              to="/students/$studentId"
-              params={{ studentId: s.id }}
-              className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-accent"
-            >
-              <span className="truncate text-sm">{s.name}</span>
-              <Badge variant="destructive" className="rounded-full">
-                ₹{duesFor(s, payments)}
-              </Badge>
-            </Link>
+          {overdue.slice(0, 5).map((s) => (
+            <div key={s.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-accent">
+              <Link
+                to="/students/$studentId"
+                params={{ studentId: s.id }}
+                className="flex min-w-0 flex-1 items-center justify-between gap-2"
+              >
+                <span className="truncate text-sm">{s.name}</span>
+                <Badge variant="destructive" className="rounded-full">
+                  ₹{duesFor(s, payments)}
+                </Badge>
+              </Link>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`Send WhatsApp reminder to ${s.name}`}
+                className="h-8 w-8 shrink-0 rounded-full text-success hover:bg-success-soft"
+                onClick={() =>
+                  window.open(
+                    whatsappReminderUrl(
+                      s,
+                      duesFor(s, payments),
+                      settings,
+                      formatMonth(monthKey(new Date())),
+                    ),
+                    "_blank",
+                    "noopener",
+                  )
+                }
+              >
+                <MessageCircle className="h-4 w-4" />
+              </Button>
+            </div>
           ))}
         </div>
       </PopoverContent>
