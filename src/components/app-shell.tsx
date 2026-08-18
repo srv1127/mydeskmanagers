@@ -229,10 +229,25 @@ export function AppShell({
   const { dark, toggle } = useTheme();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { students, reservedSeats, settings } = useLibrary();
+  const trial = useTrial();
+
+  const occupied = students.filter((s) => s.status === "active" && s.seatNumber !== null).length;
+  const displayName = settings.adminName || session?.name || "Library owner";
+  const displayEmail = settings.adminEmail || session?.email || "—";
+  const displayRole = session?.role ?? settings.role;
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]!.toUpperCase())
+    .join("");
 
   useEffect(() => {
     if (ready && !session) void navigate({ to: "/login", replace: true });
   }, [ready, session, navigate]);
+
+  if (trial.expired) return <TrialExpiredScreen />;
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -241,9 +256,17 @@ export function AppShell({
         <NavLinks />
         <div className="mt-auto p-4">
           <div className="rounded-2xl bg-primary-soft p-4">
-            <p className="text-sm font-semibold text-primary-soft-foreground">Need a hand?</p>
+            <p className="truncate text-sm font-semibold text-primary-soft-foreground">
+              {settings.libraryName}
+            </p>
             <p className="mt-1 text-xs text-primary-soft-foreground/80">
-              Manage up to 100 seats, fees and receipts from one place.
+              {occupied} of {settings.totalSeats} seats occupied · {reservedSeats.length} reserved
+            </p>
+            <p className="mt-2 truncate text-xs text-primary-soft-foreground/80">
+              {displayName} · {displayRole}
+            </p>
+            <p className="mt-1 text-xs font-semibold text-primary-soft-foreground">
+              {trial.subscribed ? "Subscription active" : `Free pilot · ${trial.daysLeft} days left`}
             </p>
           </div>
         </div>
