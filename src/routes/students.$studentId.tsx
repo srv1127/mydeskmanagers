@@ -5,9 +5,11 @@ import {
   CreditCard,
   Mail,
   MapPin,
+  MessageCircle,
   Pencil,
   Phone,
   Plus,
+  Printer,
   ShieldCheck,
   Trash2,
 } from "lucide-react";
