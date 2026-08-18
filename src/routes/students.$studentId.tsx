@@ -107,11 +107,20 @@ function StudentProfile() {
       description={`Seat ${student.seatNumber ?? "unassigned"} · joined ${formatDate(student.joiningDate)}`}
       actions={
         <>
+          {due > 0 && (
+            <Button
+              variant="outline"
+              className="rounded-full border-success/40 text-success hover:bg-success-soft"
+              onClick={sendReminder}
+            >
+              <MessageCircle className="mr-2 h-4 w-4" /> Send reminder
+            </Button>
+          )}
           <Button variant="outline" className="rounded-full" onClick={() => setEditOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" /> Edit
           </Button>
           <Button className="rounded-full" onClick={() => setPayOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Payment
+            <Plus className="mr-2 h-4 w-4" /> Collect fee
           </Button>
         </>
       }
