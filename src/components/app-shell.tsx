@@ -350,6 +350,9 @@ export function AppShell({
         </header>
 
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 sm:py-8">
+          <div className="mb-4">
+            <TrialBanner />
+          </div>
           <div className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
             <div className="min-w-0">
               <h1 className="truncate font-display text-2xl font-bold sm:text-3xl">{title}</h1>
@@ -362,6 +365,7 @@ export function AppShell({
           <div className="animate-rise">{children}</div>
         </main>
       </div>
+      <TrialWelcomeDialog />
     </div>
   );
 }
