@@ -101,12 +101,61 @@ export function PaymentDialog({
     setSaved(created);
   };
 
+  const savedStudent = saved ? students.find((s) => s.id === saved.studentId) : undefined;
+
+  if (saved) {
+    return (
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          if (!v) setSaved(null);
+          onOpenChange(v);
+        }}
+      >
+        <DialogContent className="rounded-3xl sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 grid h-14 w-14 place-items-center rounded-full bg-success-soft text-success">
+              <CheckCircle2 className="h-7 w-7" />
+            </div>
+            <DialogTitle className="text-center">Payment recorded</DialogTitle>
+            <DialogDescription className="text-center">
+              {formatINR(saved.amount)} from {savedStudent?.name ?? "student"} · {saved.forMonth}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-2xl bg-muted p-4 text-center text-sm">
+            <p className="text-muted-foreground">Receipt number</p>
+            <p className="font-display text-lg font-bold">{receiptNumber(settings, saved)}</p>
+          </div>
+
+          <DialogFooter className="sm:flex-col sm:gap-2">
+            <Button className="w-full rounded-full" onClick={() => doPrint(saved)}>
+              <Printer className="mr-2 h-4 w-4" /> Generate / print receipt
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full rounded-full"
+              onClick={() => {
+                setSaved(null);
+                onOpenChange(false);
+              }}
+            >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-3xl sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{payment ? "Edit payment" : "Add payment"}</DialogTitle>
-          <DialogDescription>Record a monthly fee payment and generate a receipt.</DialogDescription>
+          <DialogTitle>{payment ? "Edit payment" : "Collect fee payment"}</DialogTitle>
+          <DialogDescription>
+            Record a monthly fee payment, then print or share the receipt in one tap.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">
