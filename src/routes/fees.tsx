@@ -1,5 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CreditCard, Filter, Plus, Receipt, Search, Trash2, Pencil } from "lucide-react";
+import {
+  CreditCard,
+  Filter,
+  MessageCircle,
+  Plus,
+  Printer,
+  Receipt,
+  Search,
+  Trash2,
+  Pencil,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -36,6 +46,7 @@ import {
   paidForMonth,
   useLibrary,
 } from "@/lib/library-store";
+import { printReceipt, whatsappReminderUrl } from "@/lib/receipt";
 
 export const Route = createFileRoute("/fees")({
   head: () => ({
