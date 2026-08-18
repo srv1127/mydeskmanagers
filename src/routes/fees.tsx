@@ -1,5 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CreditCard, Filter, Plus, Receipt, Search, Trash2, Pencil } from "lucide-react";
+import {
+  CreditCard,
+  Filter,
+  MessageCircle,
+  Plus,
+  Printer,
+  Receipt,
+  Search,
+  Trash2,
+  Pencil,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -36,6 +46,7 @@ import {
   paidForMonth,
   useLibrary,
 } from "@/lib/library-store";
+import { printReceipt, whatsappReminderUrl } from "@/lib/receipt";
 
 export const Route = createFileRoute("/fees")({
   head: () => ({
@@ -59,6 +70,7 @@ function FeesPage() {
   const { students, payments, settings, loading, removePayment } = useLibrary();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [collectFor, setCollectFor] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -93,30 +105,21 @@ function FeesPage() {
   const recent = [...payments].sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 12);
   const editingPayment = payments.find((p) => p.id === editId);
 
-  const printReceipt = (paymentId: string) => {
+  const openReceipt = (paymentId: string) => {
     const p = payments.find((x) => x.id === paymentId);
     const s = students.find((x) => x.id === p?.studentId);
     if (!p || !s) return;
-    const win = window.open("", "_blank", "width=600,height=760");
-    if (!win) return;
-    win.document.write(`<!doctype html><html><head><title>Receipt</title>
-      <style>body{font-family:system-ui,sans-serif;padding:32px;color:#12203a}
-      h1{font-size:20px;margin:0}small{color:#5b6b86}
-      table{width:100%;margin-top:24px;border-collapse:collapse}
-      td{padding:10px 0;border-bottom:1px solid #e6ebf3;font-size:14px}
-      .total{font-weight:700;font-size:18px}</style></head><body>
-      <h1>${settings.libraryName}</h1>
-      <small>Fee receipt · ${settings.receiptPrefix}-${p.id.slice(-6).toUpperCase()}</small>
-      <table>
-        <tr><td>Student</td><td align="right">${s.name}</td></tr>
-        <tr><td>Seat</td><td align="right">${s.seatNumber ?? "—"}</td></tr>
-        <tr><td>For month</td><td align="right">${formatMonth(p.forMonth)}</td></tr>
-        <tr><td>Payment date</td><td align="right">${formatDate(p.date)}</td></tr>
-        <tr><td>Method</td><td align="right">${p.method.toUpperCase()}</td></tr>
-        <tr><td class="total">Amount paid</td><td align="right" class="total">₹${p.amount}</td></tr>
-      </table></body></html>`);
-    win.document.close();
-    win.print();
+    if (!printReceipt(p, s, settings)) toast.error("Allow pop-ups to print the receipt.");
+  };
+
+  const sendReminder = (studentId: string) => {
+    const s = students.find((x) => x.id === studentId);
+    if (!s) return;
+    window.open(
+      whatsappReminderUrl(s, duesFor(s, payments), settings, formatMonth(current)),
+      "_blank",
+      "noopener",
+    );
   };
 
   return (
@@ -230,17 +233,29 @@ function FeesPage() {
                           <FeeBadge status={status} />
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="rounded-full"
-                            onClick={() => {
-                              setEditId(null);
-                              setOpen(true);
-                            }}
-                          >
-                            Collect
-                          </Button>
+                          <div className="flex justify-end gap-1.5">
+                            {due > 0 && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full border-success/40 text-success hover:bg-success-soft"
+                                onClick={() => sendReminder(student.id)}
+                              >
+                                <MessageCircle className="mr-1.5 h-4 w-4" /> Remind
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              className="rounded-full"
+                              onClick={() => {
+                                setEditId(null);
+                                setCollectFor(student.id);
+                                setOpen(true);
+                              }}
+                            >
+                              Collect
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -305,13 +320,8 @@ function FeesPage() {
                       <TableCell className="text-right text-sm font-semibold">{formatINR(p.amount)}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="rounded-full"
-                            onClick={() => printReceipt(p.id)}
-                          >
-                            Receipt
+                          <Button size="sm" className="rounded-full" onClick={() => openReceipt(p.id)}>
+                            <Printer className="mr-1.5 h-4 w-4" /> Print receipt
                           </Button>
                           <Button
                             size="icon"
@@ -352,8 +362,12 @@ function FeesPage() {
         open={open}
         onOpenChange={(v) => {
           setOpen(v);
-          if (!v) setEditId(null);
+          if (!v) {
+            setEditId(null);
+            setCollectFor(null);
+          }
         }}
+        studentId={collectFor ?? undefined}
         payment={editingPayment}
       />
     </AppShell>

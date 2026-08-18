@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageCircle,
   Moon,
   Search,
   Settings as SettingsIcon,
@@ -29,8 +30,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TrialBanner, TrialExpiredScreen, TrialWelcomeDialog } from "@/components/trial-gate";
 import { useAuth, useTheme } from "@/lib/auth";
-import { duesFor, feeStatusFor, seatStatus, useLibrary } from "@/lib/library-store";
+import { duesFor, feeStatusFor, formatMonth, monthKey, seatStatus, useLibrary } from "@/lib/library-store";
+import { whatsappReminderUrl } from "@/lib/receipt";
+import { useTrial } from "@/lib/trial";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -126,18 +130,39 @@ function NotificationsBell() {
             <p className="text-sm font-medium">Vacant seats</p>
             <p className="text-xs text-muted-foreground">{vacant} seats available to assign</p>
           </div>
-          {overdue.slice(0, 4).map((s) => (
-            <Link
-              key={s.id}
-              to="/students/$studentId"
-              params={{ studentId: s.id }}
-              className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-accent"
-            >
-              <span className="truncate text-sm">{s.name}</span>
-              <Badge variant="destructive" className="rounded-full">
-                ₹{duesFor(s, payments)}
-              </Badge>
-            </Link>
+          {overdue.slice(0, 5).map((s) => (
+            <div key={s.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-accent">
+              <Link
+                to="/students/$studentId"
+                params={{ studentId: s.id }}
+                className="flex min-w-0 flex-1 items-center justify-between gap-2"
+              >
+                <span className="truncate text-sm">{s.name}</span>
+                <Badge variant="destructive" className="rounded-full">
+                  ₹{duesFor(s, payments)}
+                </Badge>
+              </Link>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label={`Send WhatsApp reminder to ${s.name}`}
+                className="h-8 w-8 shrink-0 rounded-full text-success hover:bg-success-soft"
+                onClick={() =>
+                  window.open(
+                    whatsappReminderUrl(
+                      s,
+                      duesFor(s, payments),
+                      settings,
+                      formatMonth(monthKey(new Date())),
+                    ),
+                    "_blank",
+                    "noopener",
+                  )
+                }
+              >
+                <MessageCircle className="h-4 w-4" />
+              </Button>
+            </div>
           ))}
         </div>
       </PopoverContent>
@@ -204,10 +229,25 @@ export function AppShell({
   const { dark, toggle } = useTheme();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { students, reservedSeats, settings } = useLibrary();
+  const trial = useTrial();
+
+  const occupied = students.filter((s) => s.status === "active" && s.seatNumber !== null).length;
+  const displayName = settings.adminName || session?.name || "Library owner";
+  const displayEmail = settings.adminEmail || session?.email || "—";
+  const displayRole = session?.role ?? settings.role;
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]!.toUpperCase())
+    .join("");
 
   useEffect(() => {
     if (ready && !session) void navigate({ to: "/login", replace: true });
   }, [ready, session, navigate]);
+
+  if (trial.expired) return <TrialExpiredScreen />;
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -216,9 +256,17 @@ export function AppShell({
         <NavLinks />
         <div className="mt-auto p-4">
           <div className="rounded-2xl bg-primary-soft p-4">
-            <p className="text-sm font-semibold text-primary-soft-foreground">Need a hand?</p>
+            <p className="truncate text-sm font-semibold text-primary-soft-foreground">
+              {settings.libraryName}
+            </p>
             <p className="mt-1 text-xs text-primary-soft-foreground/80">
-              Manage up to 100 seats, fees and receipts from one place.
+              {occupied} of {settings.totalSeats} seats occupied · {reservedSeats.length} reserved
+            </p>
+            <p className="mt-2 truncate text-xs text-primary-soft-foreground/80">
+              {displayName} · {displayRole}
+            </p>
+            <p className="mt-1 text-xs font-semibold text-primary-soft-foreground">
+              {trial.subscribed ? "Subscription active" : `Free pilot · ${trial.daysLeft} days left`}
             </p>
           </div>
         </div>
@@ -266,18 +314,21 @@ export function AppShell({
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-10 gap-2 rounded-full px-2">
                     <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                      {(session?.name ?? "U").slice(0, 1).toUpperCase()}
+                      {initials}
                     </span>
                     <span className="hidden max-w-28 truncate text-sm font-medium sm:inline">
-                      {session?.name ?? "Guest"}
+                      {displayName}
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 rounded-2xl">
+                <DropdownMenuContent align="end" className="w-60 rounded-2xl">
                   <DropdownMenuLabel className="truncate">
-                    {session?.email ?? "guest@local"}
+                    <span className="block truncate">{displayName}</span>
+                    <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">
+                      {displayEmail}
+                    </span>
                     <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                      Role: {session?.role ?? "Staff"}
+                      {settings.libraryName} · {displayRole}
                     </span>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -299,6 +350,9 @@ export function AppShell({
         </header>
 
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 sm:py-8">
+          <div className="mb-4">
+            <TrialBanner />
+          </div>
           <div className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
             <div className="min-w-0">
               <h1 className="truncate font-display text-2xl font-bold sm:text-3xl">{title}</h1>
@@ -311,6 +365,7 @@ export function AppShell({
           <div className="animate-rise">{children}</div>
         </main>
       </div>
+      <TrialWelcomeDialog />
     </div>
   );
 }

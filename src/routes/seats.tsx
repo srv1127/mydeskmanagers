@@ -40,9 +40,23 @@ export const Route = createFileRoute("/seats")({
 });
 
 const STYLES = {
-  available: "bg-success-soft text-success border-success/30 hover:border-success",
-  occupied: "bg-destructive-soft text-destructive border-destructive/30 hover:border-destructive",
-  reserved: "bg-warning-soft text-warning-foreground border-warning/40 hover:border-warning",
+  available: "bg-success-soft text-success border-success/40 hover:border-success hover:bg-success/15",
+  occupied:
+    "bg-destructive-soft text-destructive border-destructive/40 hover:border-destructive hover:bg-destructive/15",
+  reserved:
+    "bg-warning-soft text-warning-foreground border-warning/50 hover:border-warning hover:bg-warning/20",
+} as const;
+
+const DOTS = {
+  available: "bg-success",
+  occupied: "bg-destructive",
+  reserved: "bg-warning",
+} as const;
+
+const LABELS = {
+  available: "Available",
+  occupied: "Occupied",
+  reserved: "Reserved",
 } as const;
 
 function SeatsPage() {
@@ -67,21 +81,27 @@ function SeatsPage() {
       title="Seat management"
       description={`${settings.totalSeats} seats · ${counts.occupied} occupied · ${counts.available} available`}
     >
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
         {(
           [
-            ["available", "Available", counts.available],
-            ["occupied", "Occupied", counts.occupied],
-            ["reserved", "Reserved", counts.reserved],
+            ["available", counts.available],
+            ["occupied", counts.occupied],
+            ["reserved", counts.reserved],
           ] as const
-        ).map(([key, label, count]) => (
+        ).map(([key, count]) => (
           <span
             key={key}
-            className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm", STYLES[key])}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium",
+              STYLES[key],
+            )}
           >
-            <span className="h-2 w-2 rounded-full bg-current" /> {label} · {count}
+            <span className={cn("h-2.5 w-2.5 rounded-full", DOTS[key])} /> {LABELS[key]} · {count}
           </span>
         ))}
+        <span className="text-xs text-muted-foreground">
+          Tap any seat to assign, release or reserve it.
+        </span>
       </div>
 
       <div className="card-soft p-4 sm:p-6">
@@ -98,18 +118,27 @@ function SeatsPage() {
               return (
                 <button
                   key={n}
+                  type="button"
+                  title={`Seat ${n} · ${LABELS[st.status]}${st.student ? ` · ${st.student.name}` : ""}`}
+                  aria-label={`Seat ${n}, ${LABELS[st.status]}${st.student ? `, ${st.student.name}` : ""}`}
                   onClick={() => {
                     setSelected(n);
                     setAssignTo("");
                   }}
                   className={cn(
-                    "flex aspect-square flex-col items-center justify-center gap-1 rounded-2xl border p-1.5 text-center transition-all hover:-translate-y-0.5 hover:shadow-soft",
+                    "group relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 p-1.5 text-center transition-all",
+                    "hover:-translate-y-0.5 hover:shadow-lifted active:translate-y-0 active:scale-95",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                     STYLES[st.status],
+                    selected === n && "ring-2 ring-ring ring-offset-2",
                   )}
                 >
+                  <span
+                    className={cn("absolute right-1.5 top-1.5 h-2 w-2 rounded-full", DOTS[st.status])}
+                  />
                   <Armchair className="h-4 w-4 shrink-0" />
                   <span className="text-xs font-bold leading-none">{n}</span>
-                  <span className="w-full truncate text-[10px] leading-tight opacity-80">
+                  <span className="w-full truncate text-[10px] font-medium leading-tight opacity-90">
                     {st.student?.name.split(" ")[0] ?? (st.status === "reserved" ? "Reserved" : "Free")}
                   </span>
                 </button>

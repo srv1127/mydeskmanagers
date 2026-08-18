@@ -1,3 +1,4 @@
+import { CheckCircle2, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -19,7 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { monthKey, useLibrary, type Payment, type PaymentMethod } from "@/lib/library-store";
+import { formatINR, monthKey, useLibrary, type Payment, type PaymentMethod } from "@/lib/library-store";
+import { printReceipt, receiptNumber } from "@/lib/receipt";
 
 export function PaymentDialog({
   open,
@@ -32,7 +34,8 @@ export function PaymentDialog({
   payment?: Payment | undefined;
   studentId?: string | undefined;
 }) {
-  const { students, addPayment, updatePayment } = useLibrary();
+  const { students, settings, addPayment, updatePayment } = useLibrary();
+  const [saved, setSaved] = useState<Payment | null>(null);
   const [form, setForm] = useState({
     studentId: studentId ?? "",
     amount: "",
@@ -62,7 +65,13 @@ export function PaymentDialog({
     return monthKey(d);
   });
 
-  const submit = () => {
+  const doPrint = (p: Payment) => {
+    const student = students.find((s) => s.id === p.studentId);
+    if (!student) return;
+    if (!printReceipt(p, student, settings)) toast.error("Allow pop-ups to print the receipt.");
+  };
+
+  const submit = (thenPrint = false) => {
     const amount = Number(form.amount);
     if (!form.studentId) {
       toast.error("Select a student.");
@@ -83,19 +92,71 @@ export function PaymentDialog({
     if (payment) {
       updatePayment(payment.id, data);
       toast.success("Payment updated.");
-    } else {
-      addPayment(data);
-      toast.success("Payment recorded.");
+      if (thenPrint) doPrint({ ...payment, ...data });
+      onOpenChange(false);
+      return;
     }
-    onOpenChange(false);
+    const created = addPayment(data);
+    toast.success("Payment recorded.");
+    if (thenPrint) doPrint(created);
+    setSaved(created);
   };
+
+  const savedStudent = saved ? students.find((s) => s.id === saved.studentId) : undefined;
+
+  if (saved) {
+    return (
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          if (!v) setSaved(null);
+          onOpenChange(v);
+        }}
+      >
+        <DialogContent className="rounded-3xl sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 grid h-14 w-14 place-items-center rounded-full bg-success-soft text-success">
+              <CheckCircle2 className="h-7 w-7" />
+            </div>
+            <DialogTitle className="text-center">Payment recorded</DialogTitle>
+            <DialogDescription className="text-center">
+              {formatINR(saved.amount)} from {savedStudent?.name ?? "student"} · {saved.forMonth}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-2xl bg-muted p-4 text-center text-sm">
+            <p className="text-muted-foreground">Receipt number</p>
+            <p className="font-display text-lg font-bold">{receiptNumber(settings, saved)}</p>
+          </div>
+
+          <DialogFooter className="sm:flex-col sm:gap-2">
+            <Button className="w-full rounded-full" onClick={() => doPrint(saved)}>
+              <Printer className="mr-2 h-4 w-4" /> Generate / print receipt
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full rounded-full"
+              onClick={() => {
+                setSaved(null);
+                onOpenChange(false);
+              }}
+            >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-3xl sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{payment ? "Edit payment" : "Add payment"}</DialogTitle>
-          <DialogDescription>Record a monthly fee payment and generate a receipt.</DialogDescription>
+          <DialogTitle>{payment ? "Edit payment" : "Collect fee payment"}</DialogTitle>
+          <DialogDescription>
+            Record a monthly fee payment, then print or share the receipt in one tap.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">
@@ -188,8 +249,11 @@ export function PaymentDialog({
           <Button variant="outline" className="rounded-full" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button className="rounded-full" onClick={submit}>
-            {payment ? "Save payment" : "Add payment"}
+          <Button variant="secondary" className="rounded-full" onClick={() => submit(false)}>
+            {payment ? "Save payment" : "Save payment"}
+          </Button>
+          <Button className="rounded-full" onClick={() => submit(true)}>
+            <Printer className="mr-2 h-4 w-4" /> Save &amp; print receipt
           </Button>
         </DialogFooter>
       </DialogContent>
