@@ -353,12 +353,25 @@ export function duesFor(student: Student, payments: Payment[], upto = new Date()
   return Math.max(0, expected - paid);
 }
 
+/**
+ * Single source of truth for fee status. It is derived from the SAME number
+ * shown in the "Pending" column (duesFor), so a student can never display a
+ * pending amount while being labelled "paid".
+ * - paid: nothing outstanding at all
+ * - overdue: arrears from an earlier month, or this month past the due day
+ * - pending: only this month is outstanding and the due day hasn't passed
+ */
 export function feeStatusFor(student: Student, payments: Payment[]) {
+  const due = duesFor(student, payments);
+  if (due <= 0) return "paid" as const;
+
   const current = monthKey(new Date());
-  const paid = paidForMonth(payments, student.id, current);
-  if (paid >= student.monthlyFee) return "paid" as const;
-  const dayOfMonth = new Date().getDate();
-  return dayOfMonth > 10 ? ("overdue" as const) : ("pending" as const);
+  const paidThisMonth = paidForMonth(payments, student.id, current);
+  const thisMonthShortfall = Math.max(0, student.monthlyFee - paidThisMonth);
+  const arrears = due - thisMonthShortfall;
+  if (arrears > 0) return "overdue" as const;
+
+  return new Date().getDate() > FEE_DUE_DAY ? ("overdue" as const) : ("pending" as const);
 }
 
 export function monthlyCollection(payments: Payment[], months = 6) {
