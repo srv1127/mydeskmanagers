@@ -314,18 +314,21 @@ export function AppShell({
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-10 gap-2 rounded-full px-2">
                     <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                      {(session?.name ?? "U").slice(0, 1).toUpperCase()}
+                      {initials}
                     </span>
                     <span className="hidden max-w-28 truncate text-sm font-medium sm:inline">
-                      {session?.name ?? "Guest"}
+                      {displayName}
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 rounded-2xl">
+                <DropdownMenuContent align="end" className="w-60 rounded-2xl">
                   <DropdownMenuLabel className="truncate">
-                    {session?.email ?? "guest@local"}
+                    <span className="block truncate">{displayName}</span>
+                    <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">
+                      {displayEmail}
+                    </span>
                     <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                      Role: {session?.role ?? "Staff"}
+                      {settings.libraryName} · {displayRole}
                     </span>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
