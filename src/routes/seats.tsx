@@ -40,9 +40,23 @@ export const Route = createFileRoute("/seats")({
 });
 
 const STYLES = {
-  available: "bg-success-soft text-success border-success/30 hover:border-success",
-  occupied: "bg-destructive-soft text-destructive border-destructive/30 hover:border-destructive",
-  reserved: "bg-warning-soft text-warning-foreground border-warning/40 hover:border-warning",
+  available: "bg-success-soft text-success border-success/40 hover:border-success hover:bg-success/15",
+  occupied:
+    "bg-destructive-soft text-destructive border-destructive/40 hover:border-destructive hover:bg-destructive/15",
+  reserved:
+    "bg-warning-soft text-warning-foreground border-warning/50 hover:border-warning hover:bg-warning/20",
+} as const;
+
+const DOTS = {
+  available: "bg-success",
+  occupied: "bg-destructive",
+  reserved: "bg-warning",
+} as const;
+
+const LABELS = {
+  available: "Available",
+  occupied: "Occupied",
+  reserved: "Reserved",
 } as const;
 
 function SeatsPage() {
