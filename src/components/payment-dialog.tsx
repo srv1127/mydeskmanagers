@@ -1,3 +1,4 @@
+import { CheckCircle2, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -248,8 +249,11 @@ export function PaymentDialog({
           <Button variant="outline" className="rounded-full" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button className="rounded-full" onClick={submit}>
-            {payment ? "Save payment" : "Add payment"}
+          <Button variant="secondary" className="rounded-full" onClick={() => submit(false)}>
+            {payment ? "Save payment" : "Save payment"}
+          </Button>
+          <Button className="rounded-full" onClick={() => submit(true)}>
+            <Printer className="mr-2 h-4 w-4" /> Save &amp; print receipt
           </Button>
         </DialogFooter>
       </DialogContent>
