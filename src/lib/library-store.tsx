@@ -198,7 +198,7 @@ interface StoreValue extends State {
   assignSeat: (studentId: string, seat: number | null) => void;
   releaseSeat: (seat: number) => void;
   toggleReserved: (seat: number) => void;
-  addPayment: (p: Omit<Payment, "id">) => void;
+  addPayment: (p: Omit<Payment, "id">) => Payment;
   updatePayment: (id: string, patch: Partial<Payment>) => void;
   removePayment: (id: string) => void;
   updateSettings: (patch: Partial<Settings>) => void;
@@ -297,12 +297,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
             : [...prev.reservedSeats, seat],
         })),
       addPayment: (p) => {
-        setState((prev) => ({
-          ...prev,
-          payments: [{ ...p, id: `pay_${Date.now()}` }, ...prev.payments],
-        }));
+        const payment: Payment = { ...p, id: `pay_${Date.now()}` };
+        setState((prev) => ({ ...prev, payments: [payment, ...prev.payments] }));
         const name = state.students.find((s) => s.id === p.studentId)?.name ?? "Student";
         log({ type: "payment", title: "Fee payment received", detail: `${name} paid ${formatINR(p.amount)}` });
+        return payment;
       },
       updatePayment: (id, patch) =>
         setState((prev) => ({
