@@ -35,8 +35,10 @@ import {
   formatDate,
   formatINR,
   formatMonth,
+  monthKey,
   useLibrary,
 } from "@/lib/library-store";
+import { printReceipt, whatsappReminderUrl } from "@/lib/receipt";
 
 export const Route = createFileRoute("/students/$studentId")({
   head: () => ({
