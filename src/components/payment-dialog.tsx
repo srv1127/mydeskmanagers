@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { monthKey, useLibrary, type Payment, type PaymentMethod } from "@/lib/library-store";
+import { formatINR, monthKey, useLibrary, type Payment, type PaymentMethod } from "@/lib/library-store";
+import { printReceipt, receiptNumber } from "@/lib/receipt";
 
 export function PaymentDialog({
   open,
@@ -32,7 +33,8 @@ export function PaymentDialog({
   payment?: Payment | undefined;
   studentId?: string | undefined;
 }) {
-  const { students, addPayment, updatePayment } = useLibrary();
+  const { students, settings, addPayment, updatePayment } = useLibrary();
+  const [saved, setSaved] = useState<Payment | null>(null);
   const [form, setForm] = useState({
     studentId: studentId ?? "",
     amount: "",
