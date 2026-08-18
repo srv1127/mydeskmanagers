@@ -83,31 +83,18 @@ function StudentProfile() {
   const due = duesFor(student, payments);
   const editingPayment = history.find((p) => p.id === editPaymentId);
 
-  const printReceipt = (paymentId: string) => {
+  const openReceipt = (paymentId: string) => {
     const p = history.find((x) => x.id === paymentId);
     if (!p) return;
-    const win = window.open("", "_blank", "width=600,height=760");
-    if (!win) return;
-    win.document.write(`<!doctype html><html><head><title>Receipt</title>
-      <style>body{font-family:system-ui,sans-serif;padding:32px;color:#12203a}
-      h1{font-size:20px;margin:0}small{color:#5b6b86}
-      table{width:100%;margin-top:24px;border-collapse:collapse}
-      td{padding:10px 0;border-bottom:1px solid #e6ebf3;font-size:14px}
-      .total{font-weight:700;font-size:18px}</style></head><body>
-      <h1>${settings.libraryName}</h1>
-      <small>Fee receipt · ${settings.receiptPrefix}-${p.id.slice(-6).toUpperCase()}</small>
-      <table>
-        <tr><td>Student</td><td align="right">${student.name}</td></tr>
-        <tr><td>Seat</td><td align="right">${student.seatNumber ?? "—"}</td></tr>
-        <tr><td>For month</td><td align="right">${formatMonth(p.forMonth)}</td></tr>
-        <tr><td>Payment date</td><td align="right">${formatDate(p.date)}</td></tr>
-        <tr><td>Method</td><td align="right">${p.method.toUpperCase()}</td></tr>
-        <tr><td class="total">Amount paid</td><td align="right" class="total">₹${p.amount}</td></tr>
-      </table>
-      <p style="margin-top:28px;font-size:12px;color:#5b6b86">Thank you for your payment.</p>
-      </body></html>`);
-    win.document.close();
-    win.print();
+    if (!printReceipt(p, student, settings)) toast.error("Allow pop-ups to print the receipt.");
+  };
+
+  const sendReminder = () => {
+    window.open(
+      whatsappReminderUrl(student, due, settings, formatMonth(monthKey(new Date()))),
+      "_blank",
+      "noopener",
+    );
   };
 
   return (
