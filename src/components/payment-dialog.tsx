@@ -64,7 +64,13 @@ export function PaymentDialog({
     return monthKey(d);
   });
 
-  const submit = () => {
+  const doPrint = (p: Payment) => {
+    const student = students.find((s) => s.id === p.studentId);
+    if (!student) return;
+    if (!printReceipt(p, student, settings)) toast.error("Allow pop-ups to print the receipt.");
+  };
+
+  const submit = (thenPrint = false) => {
     const amount = Number(form.amount);
     if (!form.studentId) {
       toast.error("Select a student.");
@@ -85,11 +91,14 @@ export function PaymentDialog({
     if (payment) {
       updatePayment(payment.id, data);
       toast.success("Payment updated.");
-    } else {
-      addPayment(data);
-      toast.success("Payment recorded.");
+      if (thenPrint) doPrint({ ...payment, ...data });
+      onOpenChange(false);
+      return;
     }
-    onOpenChange(false);
+    const created = addPayment(data);
+    toast.success("Payment recorded.");
+    if (thenPrint) doPrint(created);
+    setSaved(created);
   };
 
   return (
