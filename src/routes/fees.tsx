@@ -70,6 +70,7 @@ function FeesPage() {
   const { students, payments, settings, loading, removePayment } = useLibrary();
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [collectFor, setCollectFor] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -319,13 +320,8 @@ function FeesPage() {
                       <TableCell className="text-right text-sm font-semibold">{formatINR(p.amount)}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="rounded-full"
-                            onClick={() => printReceipt(p.id)}
-                          >
-                            Receipt
+                          <Button size="sm" className="rounded-full" onClick={() => openReceipt(p.id)}>
+                            <Printer className="mr-1.5 h-4 w-4" /> Print receipt
                           </Button>
                           <Button
                             size="icon"
@@ -366,8 +362,12 @@ function FeesPage() {
         open={open}
         onOpenChange={(v) => {
           setOpen(v);
-          if (!v) setEditId(null);
+          if (!v) {
+            setEditId(null);
+            setCollectFor(null);
+          }
         }}
+        studentId={collectFor ?? undefined}
         payment={editingPayment}
       />
     </AppShell>
