@@ -64,6 +64,9 @@ interface State {
 
 const STORAGE_KEY = "deskmanagers.state.v1";
 
+/** Day of the month after which an unpaid current month counts as overdue. */
+export const FEE_DUE_DAY = 10;
+
 const FIRST = [
   "Aarav", "Diya", "Kabir", "Ishita", "Rohan", "Ananya", "Vivaan", "Meera", "Arjun", "Sneha",
   "Aditya", "Nisha", "Yash", "Priya", "Karan", "Riya", "Manav", "Tanvi", "Dev", "Pooja",
