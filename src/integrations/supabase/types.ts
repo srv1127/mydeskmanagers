@@ -14,16 +14,254 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activities: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          detail: string
+          id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          detail?: string
+          id?: string
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          detail?: string
+          id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      library_settings: {
+        Row: {
+          created_at: string
+          default_monthly_fee: number
+          id: string
+          library_name: string
+          receipt_prefix: string
+          total_seats: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_monthly_fee?: number
+          id?: string
+          library_name?: string
+          receipt_prefix?: string
+          total_seats?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_monthly_fee?: number
+          id?: string
+          library_name?: string
+          receipt_prefix?: string
+          total_seats?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          for_month: string
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          note: string | null
+          paid_at: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          for_month: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          note?: string | null
+          paid_at?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          for_month?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          note?: string | null
+          paid_at?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seat_reservations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          seat_number: number
+          shift: Database["public"]["Enums"]["seat_shift"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          seat_number: number
+          shift?: Database["public"]["Enums"]["seat_shift"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          seat_number?: number
+          shift?: Database["public"]["Enums"]["seat_shift"]
+        }
+        Relationships: []
+      }
+      students: {
+        Row: {
+          aadhaar: string | null
+          address: string
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          joining_date: string
+          mobile: string
+          monthly_fee: number
+          name: string
+          seat_number: number | null
+          security_deposit: number
+          shift: Database["public"]["Enums"]["seat_shift"]
+          status: Database["public"]["Enums"]["student_status"]
+          updated_at: string
+        }
+        Insert: {
+          aadhaar?: string | null
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          joining_date?: string
+          mobile?: string
+          monthly_fee?: number
+          name: string
+          seat_number?: number | null
+          security_deposit?: number
+          shift?: Database["public"]["Enums"]["seat_shift"]
+          status?: Database["public"]["Enums"]["student_status"]
+          updated_at?: string
+        }
+        Update: {
+          aadhaar?: string | null
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          joining_date?: string
+          mobile?: string
+          monthly_fee?: number
+          name?: string
+          seat_number?: number | null
+          security_deposit?: number
+          shift?: Database["public"]["Enums"]["seat_shift"]
+          status?: Database["public"]["Enums"]["student_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "staff"
+      payment_method: "cash" | "upi" | "card" | "bank"
+      seat_shift: "morning" | "evening" | "night" | "full_day"
+      student_status: "active" | "inactive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +388,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "staff"],
+      payment_method: ["cash", "upi", "card", "bank"],
+      seat_shift: ["morning", "evening", "night", "full_day"],
+      student_status: ["active", "inactive"],
+    },
   },
 } as const
