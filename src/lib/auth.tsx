@@ -1,56 +1,117 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import type { Session as SbSession, User } from "@supabase/supabase-js";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+
+import { supabase } from "@/integrations/supabase/client";
 
 export type Role = "Admin" | "Staff";
+export type DbRole = "admin" | "staff";
+
 export interface Session {
+  id: string;
   name: string;
   email: string;
   role: Role;
 }
 
-const KEY = "deskmanagers.session.v1";
-
 interface AuthValue {
   session: Session | null;
+  user: User | null;
   ready: boolean;
-  signIn: (email: string, role: Role) => void;
-  signOut: () => void;
+  isAdmin: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (name: string, email: string, password: string) => Promise<{ error: string | null }>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
 
+function nameFromEmail(email: string) {
+  return email.split("@")[0]?.replace(/[._]/g, " ") ?? "User";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [sbSession, setSbSession] = useState<SbSession | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setSession(JSON.parse(raw) as Session);
-    } catch {
-      /* ignore */
+  const hydrate = useCallback(async (sb: SbSession | null) => {
+    if (!sb?.user) {
+      setSession(null);
+      setReady(true);
+      return;
     }
+    const user = sb.user;
+    const [{ data: profile }, { data: roles }] = await Promise.all([
+      supabase.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", user.id),
+    ]);
+    const isAdmin = (roles ?? []).some((r) => r.role === "admin");
+    setSession({
+      id: user.id,
+      email: profile?.email || user.email || "",
+      name:
+        profile?.full_name ||
+        (user.user_metadata?.["full_name"] as string | undefined) ||
+        nameFromEmail(user.email ?? ""),
+      role: isAdmin ? "Admin" : "Staff",
+    });
     setReady(true);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
+      if (!active) return;
+      setSbSession(next);
+      if (event === "TOKEN_REFRESHED") return;
+      void hydrate(next);
+    });
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setSbSession(data.session);
+      void hydrate(data.session);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [hydrate]);
 
   const value = useMemo<AuthValue>(
     () => ({
       session,
+      user: sbSession?.user ?? null,
       ready,
-      signIn: (email, role) => {
-        const next: Session = {
-          email,
-          role,
-          name: email.split("@")[0]?.replace(/[._]/g, " ") ?? "User",
-        };
-        setSession(next);
-        localStorage.setItem(KEY, JSON.stringify(next));
+      isAdmin: session?.role === "Admin",
+      signIn: async (email, password) => {
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        return { error: error?.message ?? null };
       },
-      signOut: () => {
+      signUp: async (name, email, password) => {
+        const { error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/login`,
+            data: { full_name: name.trim() },
+          },
+        });
+        return { error: error?.message ?? null };
+      },
+      signInWithGoogle: async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: window.location.origin },
+        });
+        return { error: error?.message ?? null };
+      },
+      signOut: async () => {
+        await supabase.auth.signOut();
         setSession(null);
-        localStorage.removeItem(KEY);
       },
     }),
-    [session, ready],
+    [session, sbSession, ready],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
