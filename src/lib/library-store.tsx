@@ -284,30 +284,30 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<StoreValue>(() => {
-    const studentPatch = (patch: Partial<Student>) => {
-      const out: Row = {};
-      if (patch.name !== undefined) out["name"] = patch.name;
-      if (patch.mobile !== undefined) out["mobile"] = patch.mobile;
-      if (patch.email !== undefined) out["email"] = patch.email;
-      if (patch.address !== undefined) out["address"] = patch.address;
-      if (patch.aadhaar !== undefined) out["aadhaar"] = patch.aadhaar ?? null;
-      if (patch.joiningDate !== undefined) out["joining_date"] = patch.joiningDate;
-      if (patch.seatNumber !== undefined) out["seat_number"] = patch.seatNumber;
-      if (patch.shift !== undefined) out["shift"] = patch.shift;
-      if (patch.monthlyFee !== undefined) out["monthly_fee"] = patch.monthlyFee;
-      if (patch.securityDeposit !== undefined) out["security_deposit"] = patch.securityDeposit;
-      if (patch.status !== undefined) out["status"] = patch.status;
+    const studentPatch = (patch: Partial<Student>): StudentUpdate => {
+      const out: StudentUpdate = {};
+      if (patch.name !== undefined) out.name = patch.name;
+      if (patch.mobile !== undefined) out.mobile = patch.mobile;
+      if (patch.email !== undefined) out.email = patch.email;
+      if (patch.address !== undefined) out.address = patch.address;
+      if (patch.aadhaar !== undefined) out.aadhaar = patch.aadhaar ?? null;
+      if (patch.joiningDate !== undefined) out.joining_date = patch.joiningDate;
+      if (patch.seatNumber !== undefined) out.seat_number = patch.seatNumber;
+      if (patch.shift !== undefined) out.shift = patch.shift;
+      if (patch.monthlyFee !== undefined) out.monthly_fee = patch.monthlyFee;
+      if (patch.securityDeposit !== undefined) out.security_deposit = patch.securityDeposit;
+      if (patch.status !== undefined) out.status = patch.status;
       return out;
     };
 
-    const paymentPatch = (patch: Partial<Payment>) => {
-      const out: Row = {};
-      if (patch.studentId !== undefined) out["student_id"] = patch.studentId;
-      if (patch.amount !== undefined) out["amount"] = patch.amount;
-      if (patch.date !== undefined) out["paid_at"] = patch.date;
-      if (patch.method !== undefined) out["method"] = patch.method;
-      if (patch.forMonth !== undefined) out["for_month"] = patch.forMonth;
-      if (patch.note !== undefined) out["note"] = patch.note ?? null;
+    const paymentPatch = (patch: Partial<Payment>): PaymentUpdate => {
+      const out: PaymentUpdate = {};
+      if (patch.studentId !== undefined) out.student_id = patch.studentId;
+      if (patch.amount !== undefined) out.amount = patch.amount;
+      if (patch.date !== undefined) out.paid_at = patch.date;
+      if (patch.method !== undefined) out.method = patch.method;
+      if (patch.forMonth !== undefined) out.for_month = patch.forMonth;
+      if (patch.note !== undefined) out.note = patch.note ?? null;
       return out;
     };
 
