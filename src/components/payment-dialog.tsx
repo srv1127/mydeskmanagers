@@ -71,7 +71,7 @@ export function PaymentDialog({
     if (!printReceipt(p, student, settings)) toast.error("Allow pop-ups to print the receipt.");
   };
 
-  const submit = (thenPrint = false) => {
+  const submit = async (thenPrint = false) => {
     const amount = Number(form.amount);
     if (!form.studentId) {
       toast.error("Select a student.");
@@ -90,13 +90,17 @@ export function PaymentDialog({
       note: form.note.trim() || undefined,
     };
     if (payment) {
-      updatePayment(payment.id, data);
+      await updatePayment(payment.id, data);
       toast.success("Payment updated.");
       if (thenPrint) doPrint({ ...payment, ...data });
       onOpenChange(false);
       return;
     }
-    const created = addPayment(data);
+    const created = await addPayment(data);
+    if (!created) {
+      toast.error("Could not record the payment. Please try again.");
+      return;
+    }
     toast.success("Payment recorded.");
     if (thenPrint) doPrint(created);
     setSaved(created);
