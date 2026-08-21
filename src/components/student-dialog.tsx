@@ -43,7 +43,7 @@ export function StudentDialog({
   onOpenChange: (v: boolean) => void;
   student?: Student | undefined;
 }) {
-  const { students, reservedSeats, settings, addStudent, updateStudent } = useLibrary();
+  const { students, reservations, settings, addStudent, updateStudent } = useLibrary();
   const [form, setForm] = useState({
     name: "",
     mobile: "",
@@ -74,7 +74,7 @@ export function StudentDialog({
   }, [open, student, settings.defaultMonthlyFee]);
 
   const freeSeats = Array.from({ length: settings.totalSeats }, (_, i) => i + 1).filter((n) => {
-    const st = seatStatus(n, students, reservedSeats);
+    const st = seatStatus(n, students, reservations);
     return st.status !== "occupied" || st.student?.id === student?.id;
   });
 

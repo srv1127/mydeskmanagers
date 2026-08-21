@@ -54,12 +54,12 @@ function download(filename: string, content: string) {
 }
 
 function ReportsPage() {
-  const { students, payments, settings, reservedSeats } = useLibrary();
+  const { students, payments, settings, reservations } = useLibrary();
   const chart = monthlyCollection(payments, 6);
   const current = monthKey(new Date());
   const active = students.filter((s) => s.status === "active");
   const seats = Array.from({ length: settings.totalSeats }, (_, i) => i + 1).map(
-    (n) => seatStatus(n, students, reservedSeats).status,
+    (n) => seatStatus(n, students, reservations).status,
   );
   const occupied = seats.filter((s) => s === "occupied").length;
   const reserved = seats.filter((s) => s === "reserved").length;

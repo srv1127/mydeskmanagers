@@ -153,8 +153,8 @@ export function AuthProvider({
       ------------------------------------------------ */
 
       const metadataName =
-        typeof user.user_metadata?.full_name === "string"
-          ? user.user_metadata.full_name
+        typeof user.user_metadata?.["full_name"] === "string"
+          ? (user.user_metadata["full_name"] as string)
           : "";
 
       const name =
