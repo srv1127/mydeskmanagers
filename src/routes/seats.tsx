@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Armchair, Bookmark, UserMinus } from "lucide-react";
+import { Armchair, Bookmark, Clock, UserMinus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -20,7 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { seatStatus, useLibrary } from "@/lib/library-store";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  SHIFTS,
+  seatStatus,
+  shiftLabel,
+  shiftsOverlap,
+  useLibrary,
+  type Shift,
+} from "@/lib/library-store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/seats")({
@@ -30,10 +38,13 @@ export const Route = createFileRoute("/seats")({
       {
         name: "description",
         content:
-          "Visual seat map for 100 library desks: assign, change or release seats and see live occupancy.",
+          "Shift-wise visual seat map for library desks: morning, evening, night or full day — assign, release or reserve any seat.",
       },
       { property: "og:title", content: "Seat Management — DeskManagers" },
-      { property: "og:description", content: "Green available, red occupied, yellow reserved — at a glance." },
+      {
+        property: "og:description",
+        content: "Green available, red occupied, yellow reserved — per shift, at a glance.",
+      },
     ],
   }),
   component: SeatsPage,
@@ -60,27 +71,45 @@ const LABELS = {
 } as const;
 
 function SeatsPage() {
-  const { students, reservedSeats, settings, loading, assignSeat, releaseSeat, toggleReserved } =
+  const { students, reservations, settings, loading, assignSeat, releaseSeat, toggleReserved } =
     useLibrary();
+  const [shift, setShift] = useState<Shift>("morning");
   const [selected, setSelected] = useState<number | null>(null);
   const [assignTo, setAssignTo] = useState("");
 
   const seats = Array.from({ length: settings.totalSeats }, (_, i) => i + 1);
-  const detail = selected ? seatStatus(selected, students, reservedSeats) : null;
+  const detail = selected ? seatStatus(selected, students, reservations, shift) : null;
   const counts = seats.reduce(
     (acc, n) => {
-      acc[seatStatus(n, students, reservedSeats).status] += 1;
+      acc[seatStatus(n, students, reservations, shift).status] += 1;
       return acc;
     },
     { available: 0, occupied: 0, reserved: 0 },
   );
-  const unseated = students.filter((s) => s.status === "active" && s.seatNumber === null);
+  const shiftMeta = SHIFTS.find((s) => s.value === shift);
+  const unseated = students.filter(
+    (s) => s.status === "active" && (s.seatNumber === null || !shiftsOverlap(s.shift, shift)),
+  );
+  const isReserved =
+    selected !== null &&
+    reservations.some((r) => r.seatNumber === selected && shiftsOverlap(r.shift, shift));
 
   return (
     <AppShell
       title="Seat management"
-      description={`${settings.totalSeats} seats · ${counts.occupied} occupied · ${counts.available} available`}
+      description={`${shiftLabel(shift)} shift · ${shiftMeta?.time ?? ""} · ${counts.occupied} occupied · ${counts.available} available`}
     >
+      <Tabs value={shift} onValueChange={(v) => setShift(v as Shift)} className="mb-4">
+        <TabsList className="grid w-full grid-cols-2 rounded-2xl sm:w-auto sm:grid-cols-4">
+          {SHIFTS.map((s) => (
+            <TabsTrigger key={s.value} value={s.value} className="rounded-xl text-xs sm:text-sm">
+              <Clock className="mr-1.5 hidden h-3.5 w-3.5 sm:inline" />
+              {s.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
       <div className="mb-4 flex flex-wrap items-center gap-2.5">
         {(
           [
@@ -100,7 +129,8 @@ function SeatsPage() {
           </span>
         ))}
         <span className="text-xs text-muted-foreground">
-          Tap any seat to assign, release or reserve it.
+          Showing the {shiftLabel(shift).toLowerCase()} shift ({shiftMeta?.time}). Tap a seat to
+          assign, release or reserve it.
         </span>
       </div>
 
@@ -114,13 +144,13 @@ function SeatsPage() {
         ) : (
           <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 sm:gap-3">
             {seats.map((n) => {
-              const st = seatStatus(n, students, reservedSeats);
+              const st = seatStatus(n, students, reservations, shift);
               return (
                 <button
                   key={n}
                   type="button"
-                  title={`Seat ${n} · ${LABELS[st.status]}${st.student ? ` · ${st.student.name}` : ""}`}
-                  aria-label={`Seat ${n}, ${LABELS[st.status]}${st.student ? `, ${st.student.name}` : ""}`}
+                  title={`Seat ${n} · ${shiftLabel(shift)} · ${LABELS[st.status]}${st.student ? ` · ${st.student.name}` : ""}`}
+                  aria-label={`Seat ${n}, ${shiftLabel(shift)} shift, ${LABELS[st.status]}${st.student ? `, ${st.student.name}` : ""}`}
                   onClick={() => {
                     setSelected(n);
                     setAssignTo("");
@@ -151,9 +181,11 @@ function SeatsPage() {
       <Dialog open={selected !== null} onOpenChange={(v) => !v && setSelected(null)}>
         <DialogContent className="rounded-3xl sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Seat {selected}</DialogTitle>
+            <DialogTitle>
+              Seat {selected} · {shiftLabel(shift)}
+            </DialogTitle>
             <DialogDescription className="capitalize">
-              Status: {detail?.status ?? "—"}
+              {shiftMeta?.time} · {detail?.status ?? "—"}
               {detail?.student ? ` · ${detail.student.name}` : ""}
             </DialogDescription>
           </DialogHeader>
@@ -163,6 +195,9 @@ function SeatsPage() {
               <div className="rounded-2xl bg-muted p-4 text-sm">
                 <p className="font-semibold">{detail.student.name}</p>
                 <p className="text-muted-foreground">{detail.student.mobile}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Booked shift: {shiftLabel(detail.student.shift)}
+                </p>
               </div>
               <Button asChild variant="outline" className="w-full rounded-full">
                 <Link to="/students/$studentId" params={{ studentId: detail.student.id }}>
@@ -173,8 +208,8 @@ function SeatsPage() {
                 variant="ghost"
                 className="w-full rounded-full text-destructive hover:bg-destructive-soft"
                 onClick={() => {
-                  if (selected) releaseSeat(selected);
-                  toast.success(`Seat ${selected} released.`);
+                  if (selected) void releaseSeat(selected, shift);
+                  toast.success(`Seat ${selected} released for the ${shiftLabel(shift)} shift.`);
                   setSelected(null);
                 }}
               >
@@ -185,17 +220,17 @@ function SeatsPage() {
             <div className="space-y-3">
               <Select value={assignTo} onValueChange={setAssignTo}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Assign to student" />
+                  <SelectValue placeholder={`Assign for ${shiftLabel(shift)} shift`} />
                 </SelectTrigger>
                 <SelectContent className="max-h-64">
                   {unseated.length === 0 ? (
                     <SelectItem value="none" disabled>
-                      All active students have seats
+                      All active students have seats for this shift
                     </SelectItem>
                   ) : (
                     unseated.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
-                        {s.name}
+                        {s.name} · {shiftLabel(s.shift)}
                       </SelectItem>
                     ))
                   )}
@@ -205,28 +240,28 @@ function SeatsPage() {
                 className="w-full rounded-full"
                 disabled={!assignTo || assignTo === "none"}
                 onClick={() => {
-                  if (selected) assignSeat(assignTo, selected);
-                  toast.success(`Seat ${selected} assigned.`);
+                  if (selected) void assignSeat(assignTo, selected, shift);
+                  toast.success(`Seat ${selected} assigned for the ${shiftLabel(shift)} shift.`);
                   setSelected(null);
                 }}
               >
-                Assign seat
+                Assign seat · {shiftLabel(shift)}
               </Button>
               <Button
                 variant="outline"
                 className="w-full rounded-full"
                 onClick={() => {
-                  if (selected) toggleReserved(selected);
+                  if (selected) void toggleReserved(selected, shift);
                   toast.success(
-                    reservedSeats.includes(selected ?? -1)
+                    isReserved
                       ? `Seat ${selected} is available again.`
-                      : `Seat ${selected} reserved.`,
+                      : `Seat ${selected} reserved for the ${shiftLabel(shift)} shift.`,
                   );
                   setSelected(null);
                 }}
               >
                 <Bookmark className="mr-2 h-4 w-4" />
-                {reservedSeats.includes(selected ?? -1) ? "Remove reservation" : "Mark as reserved"}
+                {isReserved ? "Remove reservation" : "Mark as reserved"}
               </Button>
             </div>
           )}
