@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth";
 
 export type Status = "active" | "inactive";
@@ -116,6 +117,12 @@ export function formatDate(iso: string) {
 /* ---------- row mappers ---------- */
 
 type Row = Record<string, unknown>;
+
+type StudentInsert = TablesInsert<"students">;
+type StudentUpdate = TablesUpdate<"students">;
+type PaymentInsert = TablesInsert<"payments">;
+type PaymentUpdate = TablesUpdate<"payments">;
+type SettingsUpdate = TablesUpdate<"library_settings">;
 
 function mapStudent(r: Row): Student {
   return {
