@@ -89,14 +89,14 @@ function Brand() {
 }
 
 function NotificationsBell() {
-  const { students, payments, settings, reservedSeats } = useLibrary();
+  const { students, payments, settings, reservations } = useLibrary();
   const active = students.filter((s) => s.status === "active");
   const overdue = active.filter((s) => feeStatusFor(s, payments) === "overdue");
   const dueToday = active.filter((s) => feeStatusFor(s, payments) === "pending");
   const vacant =
     settings.totalSeats -
     Array.from({ length: settings.totalSeats }, (_, i) => i + 1).filter(
-      (n) => seatStatus(n, students, reservedSeats).status !== "available",
+      (n) => seatStatus(n, students, reservations).status !== "available",
     ).length;
   const count = overdue.length + dueToday.length;
 
@@ -229,7 +229,7 @@ export function AppShell({
   const { dark, toggle } = useTheme();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { students, reservedSeats, settings } = useLibrary();
+  const { students, reservations, settings } = useLibrary();
   const trial = useTrial();
 
   const occupied = students.filter((s) => s.status === "active" && s.seatNumber !== null).length;
@@ -260,7 +260,7 @@ export function AppShell({
               {settings.libraryName}
             </p>
             <p className="mt-1 text-xs text-primary-soft-foreground/80">
-              {occupied} of {settings.totalSeats} seats occupied · {reservedSeats.length} reserved
+              {occupied} of {settings.totalSeats} seats occupied · {reservations.length} reserved
             </p>
             <p className="mt-2 truncate text-xs text-primary-soft-foreground/80">
               {displayName} · {displayRole}

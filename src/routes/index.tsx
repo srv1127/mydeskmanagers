@@ -56,10 +56,10 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  const { students, payments, settings, reservedSeats, activities, loading } = useLibrary();
+  const { students, payments, settings, reservations, activities, loading } = useLibrary();
 
   const seats = Array.from({ length: settings.totalSeats }, (_, i) => i + 1).map((n) =>
-    seatStatus(n, students, reservedSeats),
+    seatStatus(n, students, reservations),
   );
   const occupied = seats.filter((s) => s.status === "occupied").length;
   const reserved = seats.filter((s) => s.status === "reserved").length;
