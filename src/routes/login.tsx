@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth, type Role } from "@/lib/auth";
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Sign in — DeskManagers Library Manager" },
