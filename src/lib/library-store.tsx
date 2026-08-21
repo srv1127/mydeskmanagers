@@ -328,9 +328,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       refresh,
 
       addStudent: async (s) => {
+        const insertRow: StudentInsert = {
+          ...studentPatch(s),
+          name: s.name,
+          created_by: userId,
+        };
         const { data, error } = await supabase
           .from("students")
-          .insert({ ...studentPatch(s), created_by: userId })
+          .insert(insertRow)
           .select("*")
           .single();
         if (error || !data) {
@@ -423,9 +428,16 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       },
 
       addPayment: async (p) => {
+        const insertRow: PaymentInsert = {
+          ...paymentPatch(p),
+          student_id: p.studentId,
+          amount: p.amount,
+          for_month: p.forMonth,
+          created_by: userId,
+        };
         const { data, error } = await supabase
           .from("payments")
-          .insert({ ...paymentPatch(p), created_by: userId })
+          .insert(insertRow)
           .select("*")
           .single();
         if (error || !data) {
@@ -452,12 +464,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       },
 
       updateSettings: async (patch) => {
-        const row: Row = {};
-        if (patch.libraryName !== undefined) row["library_name"] = patch.libraryName;
-        if (patch.totalSeats !== undefined) row["total_seats"] = patch.totalSeats;
-        if (patch.defaultMonthlyFee !== undefined)
-          row["default_monthly_fee"] = patch.defaultMonthlyFee;
-        if (patch.receiptPrefix !== undefined) row["receipt_prefix"] = patch.receiptPrefix;
+        const row: SettingsUpdate = {};
+        if (patch.libraryName !== undefined) row.library_name = patch.libraryName;
+        if (patch.totalSeats !== undefined) row.total_seats = patch.totalSeats;
+        if (patch.defaultMonthlyFee !== undefined) row.default_monthly_fee = patch.defaultMonthlyFee;
+        if (patch.receiptPrefix !== undefined) row.receipt_prefix = patch.receiptPrefix;
 
         if (Object.keys(row).length > 0) {
           const { error } = settingsRow.id
