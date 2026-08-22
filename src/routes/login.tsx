@@ -1,13 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BookOpenCheck, Loader2, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth, type Role } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -26,25 +26,52 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { signIn } = useAuth();
+  const { session, ready, signIn, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin@deskmanagers.app");
-  const [password, setPassword] = useState("library123");
-  const [role, setRole] = useState<Role>("Admin");
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (ready && session) void navigate({ to: "/", replace: true });
+  }, [ready, session, navigate]);
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.includes("@") || password.length < 6) {
       toast.error("Enter a valid email and a password of 6+ characters.");
       return;
     }
+    if (mode === "signup" && name.trim().length < 2) {
+      toast.error("Please enter your full name.");
+      return;
+    }
     setBusy(true);
-    setTimeout(() => {
-      signIn(email.trim(), role);
-      toast.success(`Welcome back, signed in as ${role}.`);
-      void navigate({ to: "/", replace: true });
-    }, 550);
+    const res =
+      mode === "signin"
+        ? await signIn(email, password)
+        : await signUp(name, email, password);
+    setBusy(false);
+    if (res.error) {
+      toast.error(res.error);
+      return;
+    }
+    if (mode === "signup") {
+      toast.success("Account created. Check your email to confirm, then sign in.");
+      setMode("signin");
+      return;
+    }
+    toast.success("Welcome back.");
+    void navigate({ to: "/", replace: true });
+  };
+
+  const google = async () => {
+    setBusy(true);
+    const { error } = await signInWithGoogle();
+    setBusy(false);
+    if (error) toast.error(error);
   };
 
   return (
@@ -61,17 +88,19 @@ function LoginPage() {
             Seats, students and fees — all in one calm dashboard.
           </h1>
           <p className="mt-4 text-primary-foreground/80">
-            Track 100 seats in a visual grid, collect monthly fees, print receipts and see exactly who
-            is overdue.
+            Track every seat across morning, evening, night and full-day shifts, collect monthly fees
+            and see exactly who is overdue.
           </p>
           <div className="mt-8 grid gap-3 text-sm">
-            {["Visual seat map with live status", "Monthly collection & pending reports", "Admin and staff access"].map(
-              (line) => (
-                <div key={line} className="flex items-center gap-2 text-primary-foreground/90">
-                  <ShieldCheck className="h-4 w-4" /> {line}
-                </div>
-              ),
-            )}
+            {[
+              "Shift-wise seat map with live status",
+              "Monthly collection & pending reports",
+              "Admin and staff access levels",
+            ].map((line) => (
+              <div key={line} className="flex items-center gap-2 text-primary-foreground/90">
+                <ShieldCheck className="h-4 w-4" /> {line}
+              </div>
+            ))}
           </div>
         </div>
         <p className="text-xs text-primary-foreground/70">© {new Date().getFullYear()} DeskManagers</p>
@@ -84,23 +113,40 @@ function LoginPage() {
               <BookOpenCheck className="h-6 w-6" />
             </div>
           </div>
-          <h2 className="font-display text-2xl font-bold">Sign in</h2>
+          <h2 className="font-display text-2xl font-bold">
+            {mode === "signin" ? "Sign in" : "Create your account"}
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Use your library credentials to continue.
+            {mode === "signin"
+              ? "Use your library account to continue."
+              : "The first account created becomes the Admin."}
           </p>
 
-          <Tabs value={role} onValueChange={(v) => setRole(v as Role)} className="mt-6">
+          <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)} className="mt-6">
             <TabsList className="grid w-full grid-cols-2 rounded-full">
-              <TabsTrigger value="Admin" className="rounded-full">
-                Admin
+              <TabsTrigger value="signin" className="rounded-full">
+                Sign in
               </TabsTrigger>
-              <TabsTrigger value="Staff" className="rounded-full">
-                Staff
+              <TabsTrigger value="signup" className="rounded-full">
+                Sign up
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
           <div className="mt-6 space-y-4">
+            {mode === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="name">Full name</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  maxLength={80}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  className="h-11"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -129,11 +175,22 @@ function LoginPage() {
 
           <Button type="submit" disabled={busy} className="mt-6 h-11 w-full rounded-full text-sm font-semibold">
             {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {busy ? "Signing in…" : "Sign in"}
+            {mode === "signin" ? (busy ? "Signing in…" : "Sign in") : busy ? "Creating…" : "Create account"}
           </Button>
-          <p className="mt-4 text-center text-xs text-muted-foreground">
-            Demo mode — any valid email works. Data is stored on this device.
-          </p>
+
+          <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={() => void google()}
+            className="h-11 w-full rounded-full text-sm font-semibold"
+          >
+            Continue with Google
+          </Button>
         </form>
       </div>
     </div>

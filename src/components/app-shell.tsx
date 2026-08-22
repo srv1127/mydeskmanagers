@@ -42,15 +42,16 @@ const NAV = [
   { to: "/students", label: "Students", icon: Users },
   { to: "/seats", label: "Seats", icon: Armchair },
   { to: "/fees", label: "Fees", icon: CreditCard },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
-  { to: "/settings", label: "Settings", icon: SettingsIcon },
+  { to: "/reports", label: "Reports", icon: BarChart3, adminOnly: true },
+  { to: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true },
 ] as const;
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const { isAdmin } = useAuth();
   return (
     <nav className="flex flex-col gap-1 px-3">
-      {NAV.map((item) => {
+      {NAV.filter((item) => !("adminOnly" in item && item.adminOnly) || isAdmin).map((item) => {
         const active = item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
         return (
           <Link

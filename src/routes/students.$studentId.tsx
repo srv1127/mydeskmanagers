@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   CalendarDays,
+  Clock,
   CreditCard,
   Mail,
   MapPin,
@@ -38,6 +39,7 @@ import {
   formatINR,
   formatMonth,
   monthKey,
+  shiftLabel,
   useLibrary,
 } from "@/lib/library-store";
 import { printReceipt, whatsappReminderUrl } from "@/lib/receipt";
@@ -152,6 +154,7 @@ function StudentProfile() {
               { icon: Phone, label: student.mobile },
               { icon: Mail, label: student.email },
               { icon: MapPin, label: student.address || "—" },
+              { icon: Clock, label: `Shift: ${shiftLabel(student.shift)}` },
               { icon: CalendarDays, label: `Joined ${formatDate(student.joiningDate)}` },
               { icon: ShieldCheck, label: `Aadhaar ${student.aadhaar ?? "not provided"}` },
             ].map((row) => (

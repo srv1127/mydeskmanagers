@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
+import { RoleManager } from "@/components/role-manager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const { settings, updateSettings } = useLibrary();
-  const { session } = useAuth();
+  const { session, isAdmin } = useAuth();
   const [form, setForm] = useState({
     libraryName: settings.libraryName,
     totalSeats: String(settings.totalSeats),
@@ -77,6 +78,18 @@ function SettingsPage() {
     setPw({ current: "", next: "", confirm: "" });
     toast.success("Password updated.");
   };
+
+  if (!isAdmin) {
+    return (
+      <AppShell title="Settings" description="Admin access required">
+        <div className="card-soft p-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            Only admins can change library settings and manage roles.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
@@ -202,6 +215,7 @@ function SettingsPage() {
             </Button>
           </div>
         </div>
+        <RoleManager />
       </div>
     </AppShell>
   );

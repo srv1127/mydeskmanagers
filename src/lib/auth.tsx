@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 
 /* =========================================================
    TYPES
@@ -363,14 +364,9 @@ export function AuthProvider({
   const signInWithGoogle = useCallback(
     async (): Promise<{ error: string | null }> => {
       try {
-        const { error } =
-          await supabase.auth.signInWithOAuth({
-            provider: "google",
-
-            options: {
-              redirectTo: window.location.origin,
-            },
-          });
+        const { error } = await lovable.auth.signInWithOAuth("google", {
+          redirect_uri: window.location.origin,
+        });
 
         if (error) {
           console.error(
@@ -379,7 +375,7 @@ export function AuthProvider({
           );
 
           return {
-            error: error.message,
+            error: typeof error === "string" ? error : "Unable to sign in with Google.",
           };
         }
 
