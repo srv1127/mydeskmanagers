@@ -21,6 +21,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { useAuth } from "@/lib/auth";
 import { AppShell } from "@/components/app-shell";
 import { StatCard, StatCardSkeleton } from "@/components/stat-card";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,7 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const { students, payments, settings, reservations, activities, loading } = useLibrary();
+  const { isAdmin } = useAuth();
 
   const seats = Array.from({ length: settings.totalSeats }, (_, i) => i + 1).map((n) =>
     seatStatus(n, students, reservations),
@@ -96,8 +98,12 @@ function Dashboard() {
               { label: "Occupied Seats", value: String(occupied), icon: Armchair, tone: "destructive" as const, hint: `${Math.round((occupied / settings.totalSeats) * 100)}% utilisation` },
               { label: "Available Seats", value: String(available), icon: Armchair, tone: "success" as const, hint: "Ready to assign" },
               { label: "Total Students", value: String(students.length), icon: Users, tone: "primary" as const, hint: `${activeStudents.length} active` },
-              { label: "Fees Collected (This Month)", value: formatINR(collected), icon: CircleDollarSign, tone: "success" as const, hint: "Received payments" },
-              { label: "Pending Fees", value: formatINR(pending), icon: Clock3, tone: "warning" as const, hint: "Across active students" },
+              ...(isAdmin
+                ? [
+                    { label: "Fees Collected (This Month)", value: formatINR(collected), icon: CircleDollarSign, tone: "success" as const, hint: "Received payments" },
+                    { label: "Pending Fees", value: formatINR(pending), icon: Clock3, tone: "warning" as const, hint: "Across active students" },
+                  ]
+                : []),
             ].map((c) => <StatCard key={c.label} {...c} />)}
       </div>
 
