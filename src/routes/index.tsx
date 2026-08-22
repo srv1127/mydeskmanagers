@@ -108,6 +108,7 @@ function Dashboard() {
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
+        {isAdmin && (
         <div className="card-soft p-5 lg:col-span-2">
           <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
             <div className="min-w-0">
@@ -154,8 +155,9 @@ function Dashboard() {
             </div>
           )}
         </div>
+        )}
 
-        <div className="card-soft p-5">
+        <div className={isAdmin ? "card-soft p-5" : "card-soft p-5 lg:col-span-3"}>
           <h2 className="text-base font-semibold">Seat occupancy</h2>
           <p className="text-xs text-muted-foreground">{settings.totalSeats} seats total</p>
           {loading ? (
