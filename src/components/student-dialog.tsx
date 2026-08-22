@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { seatStatus, useLibrary, type Student } from "@/lib/library-store";
+import { SHIFTS, seatStatus, useLibrary, type Student } from "@/lib/library-store";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80),
@@ -52,6 +52,7 @@ export function StudentDialog({
     aadhaar: "",
     joiningDate: new Date().toISOString().slice(0, 10),
     seatNumber: "none",
+    shift: "morning" as Student["shift"],
     monthlyFee: String(settings.defaultMonthlyFee),
     securityDeposit: "500",
     status: "active" as Student["status"],
@@ -67,6 +68,7 @@ export function StudentDialog({
       aadhaar: student?.aadhaar ?? "",
       joiningDate: (student?.joiningDate ?? new Date().toISOString()).slice(0, 10),
       seatNumber: student?.seatNumber ? String(student.seatNumber) : "none",
+      shift: student?.shift ?? "morning",
       monthlyFee: String(student?.monthlyFee ?? settings.defaultMonthlyFee),
       securityDeposit: String(student?.securityDeposit ?? 500),
       status: student?.status ?? "active",
@@ -74,7 +76,7 @@ export function StudentDialog({
   }, [open, student, settings.defaultMonthlyFee]);
 
   const freeSeats = Array.from({ length: settings.totalSeats }, (_, i) => i + 1).filter((n) => {
-    const st = seatStatus(n, students, reservations);
+    const st = seatStatus(n, students, reservations, form.shift);
     return st.status !== "occupied" || st.student?.id === student?.id;
   });
 
@@ -98,6 +100,7 @@ export function StudentDialog({
       aadhaar: form.aadhaar.trim() || undefined,
       joiningDate: new Date(form.joiningDate).toISOString(),
       seatNumber: form.seatNumber === "none" ? null : Number(form.seatNumber),
+      shift: form.shift,
       status: form.status,
     };
     if (student) {
@@ -196,6 +199,24 @@ export function StudentDialog({
                 {freeSeats.map((n) => (
                   <SelectItem key={n} value={String(n)}>
                     Seat {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Shift</Label>
+            <Select
+              value={form.shift}
+              onValueChange={(v) => setForm({ ...form, shift: v as Student["shift"] })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SHIFTS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label} · {s.time}
                   </SelectItem>
                 ))}
               </SelectContent>
