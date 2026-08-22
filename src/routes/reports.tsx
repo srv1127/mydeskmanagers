@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -54,6 +55,7 @@ function download(filename: string, content: string) {
 }
 
 function ReportsPage() {
+  const { isAdmin } = useAuth();
   const { students, payments, settings, reservations } = useLibrary();
   const chart = monthlyCollection(payments, 6);
   const current = monthKey(new Date());
@@ -103,6 +105,18 @@ function ReportsPage() {
     );
     toast.success("Monthly collection exported.");
   };
+
+  if (!isAdmin) {
+    return (
+      <AppShell title="Reports" description="Admin access required">
+        <div className="card-soft p-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            Revenue reports are visible to admins only.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell
