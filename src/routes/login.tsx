@@ -127,7 +127,7 @@ function LoginPage() {
               <TabsTrigger value="signin" className="rounded-full">
                 Sign in
               </TabsTrigger>
-              {/* <TabsTrigger value="signup" className="rounded-full">
+              <TabsTrigger value="signup" className="rounded-full">
                 Sign up
               </TabsTrigger>
             </TabsList>
@@ -180,7 +180,7 @@ function LoginPage() {
 
           <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
-          </div> */}
+          </div>
 
           <Button
             type="button"
