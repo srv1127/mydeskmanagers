@@ -42,8 +42,11 @@ export function TrialProvider({ children }: { children: ReactNode }) {
     if (!parsed) {
       parsed = { startedAt: new Date().toISOString(), subscribed: false };
       localStorage.setItem(KEY, JSON.stringify(parsed));
-      setShowWelcome(true);
     }
+    // Show the subscription pivot popup on every page load/refresh until the
+    // user has an active subscription. The trial record (startedAt +
+    // subscribed) stays persisted, so the popup simply reappears each visit.
+    setShowWelcome(!parsed.subscribed);
     setState(parsed);
     setReady(true);
   }, []);
