@@ -71,6 +71,63 @@ export type Database = {
         }
         Relationships: []
       }
+      library_subscriptions: {
+        Row: {
+          account_key: string
+          amount: number
+          billing_day: number
+          completed_at: string | null
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          last_payment_at: string | null
+          next_renewal_date: string | null
+          plan: string
+          provider_reference: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          account_key?: string
+          amount?: number
+          billing_day?: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          last_payment_at?: string | null
+          next_renewal_date?: string | null
+          plan?: string
+          provider_reference?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          account_key?: string
+          amount?: number
+          billing_day?: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          last_payment_at?: string | null
+          next_renewal_date?: string | null
+          plan?: string
+          provider_reference?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
