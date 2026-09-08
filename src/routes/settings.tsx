@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { KeyRound, Save } from "lucide-react";
+import { CheckCircle2, KeyRound, Save } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  const { settings, updateSettings } = useLibrary();
+  const { settings, updateSettings, subscription, confirmSubscription } = useLibrary();
   const { session, isAdmin } = useAuth();
   const [form, setForm] = useState({
     libraryName: settings.libraryName,
@@ -216,6 +216,22 @@ function SettingsPage() {
           </div>
         </div>
         <RoleManager />
+        <div className="card-soft p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold">Monthly subscription</h2>
+              <p className="text-xs text-muted-foreground">₹499 per month, renewed on the 5th.</p>
+            </div>
+            <CheckCircle2 className={subscription?.status === "active" ? "h-5 w-5 text-success" : "h-5 w-5 text-warning"} />
+          </div>
+          <p className="mt-4 text-sm">Status: <strong className="capitalize">{subscription?.status ?? "pending"}</strong></p>
+          {subscription?.nextRenewalDate && <p className="mt-1 text-xs text-muted-foreground">Next renewal: {subscription.nextRenewalDate}</p>}
+          {subscription?.status !== "active" && (
+            <Button className="mt-4 rounded-full" onClick={() => void confirmSubscription()}>
+              Confirm latest payment
+            </Button>
+          )}
+        </div>
       </div>
     </AppShell>
   );
