@@ -83,6 +83,21 @@ export interface Settings {
   role: "Admin" | "Staff";
 }
 
+export interface LibrarySubscription {
+  id: string;
+  status: "pending" | "active" | "past_due";
+  plan: string;
+  amount: number;
+  currency: string;
+  billingDay: number;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  nextRenewalDate: string | null;
+  lastPaymentAt: string | null;
+  providerReference: string | null;
+  completedAt: string | null;
+}
+
 /** Day of the month after which an unpaid current month counts as overdue. */
 export const FEE_DUE_DAY = 10;
 
@@ -123,6 +138,7 @@ type StudentUpdate = TablesUpdate<"students">;
 type PaymentInsert = TablesInsert<"payments">;
 type PaymentUpdate = TablesUpdate<"payments">;
 type SettingsUpdate = TablesUpdate<"library_settings">;
+type SubscriptionUpdate = TablesUpdate<"library_subscriptions">;
 
 function mapStudent(r: Row): Student {
   return {
@@ -153,6 +169,23 @@ function mapPayment(r: Row): Payment {
   };
 }
 
+function mapSubscription(r: Row): LibrarySubscription {
+  return {
+    id: String(r["id"]),
+    status: (r["status"] as LibrarySubscription["status"]) ?? "pending",
+    plan: String(r["plan"] ?? "monthly"),
+    amount: Number(r["amount"] ?? 499),
+    currency: String(r["currency"] ?? "INR"),
+    billingDay: Number(r["billing_day"] ?? 5),
+    currentPeriodStart: (r["current_period_start"] as string | null) ?? null,
+    currentPeriodEnd: (r["current_period_end"] as string | null) ?? null,
+    nextRenewalDate: (r["next_renewal_date"] as string | null) ?? null,
+    lastPaymentAt: (r["last_payment_at"] as string | null) ?? null,
+    providerReference: (r["provider_reference"] as string | null) ?? null,
+    completedAt: (r["completed_at"] as string | null) ?? null,
+  };
+}
+
 const DEFAULT_SETTINGS: Omit<Settings, "adminName" | "adminEmail" | "role"> = {
   libraryName: "My Study Library",
   totalSeats: 100,
@@ -166,6 +199,7 @@ interface StoreValue {
   reservations: Reservation[];
   activities: Activity[];
   settings: Settings;
+  subscription: LibrarySubscription | null;
   loading: boolean;
   refresh: () => Promise<void>;
   addStudent: (s: Omit<Student, "id">) => Promise<Student | null>;
@@ -178,6 +212,7 @@ interface StoreValue {
   updatePayment: (id: string, patch: Partial<Payment>) => Promise<void>;
   removePayment: (id: string) => Promise<void>;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
+  confirmSubscription: (providerReference?: string) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -188,6 +223,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [subscription, setSubscription] = useState<LibrarySubscription | null>(null);
   const [settingsRow, setSettingsRow] = useState<{
     id: string | null;
     libraryName: string;
@@ -205,16 +241,18 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       setPayments([]);
       setReservations([]);
       setActivities([]);
+      setSubscription(null);
       setLoading(false);
       return;
     }
     setLoading(true);
-    const [st, pa, re, ac, se] = await Promise.all([
+    const [st, pa, re, ac, se, sub] = await Promise.all([
       supabase.from("students").select("*").order("created_at", { ascending: false }),
       supabase.from("payments").select("*").order("paid_at", { ascending: false }),
       supabase.from("seat_reservations").select("*"),
       supabase.from("activities").select("*").order("created_at", { ascending: false }).limit(40),
       supabase.from("library_settings").select("*").limit(1).maybeSingle(),
+      supabase.from("library_subscriptions").select("*").eq("account_key", "default").maybeSingle(),
     ]);
 
     if (st.error) console.error("Failed to load students:", st.error);
@@ -222,6 +260,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     if (re.error) console.error("Failed to load reservations:", re.error);
     if (ac.error) console.error("Failed to load activity:", ac.error);
     if (se.error) console.error("Failed to load settings:", se.error);
+    if (sub.error) console.error("Failed to load subscription:", sub.error);
 
     setStudents((st.data ?? []).map((r) => mapStudent(r as Row)));
     setPayments((pa.data ?? []).map((r) => mapPayment(r as Row)));
@@ -258,6 +297,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         receiptPrefix: String(row["receipt_prefix"] ?? DEFAULT_SETTINGS.receiptPrefix),
       });
     }
+    setSubscription(sub.data ? mapSubscription(sub.data as Row) : null);
     setLoading(false);
   }, [userId]);
 
@@ -324,6 +364,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       reservations,
       activities,
       settings,
+      subscription,
       loading,
       refresh,
 
@@ -485,8 +526,33 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         }
         await refresh();
       },
+
+      confirmSubscription: async (providerReference) => {
+        if (!userId) return;
+        const today = new Date();
+        const nextRenewal = new Date(today.getFullYear(), today.getMonth(), 5);
+        if (today.getDate() >= 5) nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+        const periodEnd = new Date(nextRenewal);
+        periodEnd.setDate(periodEnd.getDate() - 1);
+        const row: SubscriptionUpdate = {
+          status: "active",
+          current_period_start: today.toISOString().slice(0, 10),
+          current_period_end: periodEnd.toISOString().slice(0, 10),
+          next_renewal_date: nextRenewal.toISOString().slice(0, 10),
+          last_payment_at: today.toISOString(),
+          completed_at: today.toISOString(),
+          updated_by: userId,
+          provider_reference: providerReference?.trim() || null,
+        };
+        const { error } = await supabase
+          .from("library_subscriptions")
+          .update(row)
+          .eq("account_key", "default");
+        if (error) console.error("Failed to confirm subscription:", error);
+        await refresh();
+      },
     };
-  }, [students, payments, reservations, activities, settings, settingsRow, loading, refresh, log, userId]);
+  }, [students, payments, reservations, activities, settings, subscription, settingsRow, loading, refresh, log, userId]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
