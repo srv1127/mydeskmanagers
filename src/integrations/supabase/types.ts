@@ -280,6 +280,54 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_payment_proofs: {
+        Row: {
+          account_key: string
+          amount: number
+          created_at: string
+          id: string
+          payer_name: string
+          proof_path: string
+          provider_reference: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_by: string
+          updated_at: string
+        }
+        Insert: {
+          account_key?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          payer_name?: string
+          proof_path: string
+          provider_reference?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_by: string
+          updated_at?: string
+        }
+        Update: {
+          account_key?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          payer_name?: string
+          proof_path?: string
+          provider_reference?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_by?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
