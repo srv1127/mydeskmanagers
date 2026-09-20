@@ -354,7 +354,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      review_subscription_payment_proof: {
+        Args: {
+          _decision: string
+          _proof_id: string
+          _rejection_reason?: string
+        }
+        Returns: {
+          account_key: string
+          amount: number
+          created_at: string
+          id: string
+          payer_name: string
+          proof_path: string
+          provider_reference: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_by: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subscription_payment_proofs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "staff"
