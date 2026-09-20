@@ -98,6 +98,21 @@ export interface LibrarySubscription {
   completedAt: string | null;
 }
 
+export interface SubscriptionPaymentProof {
+  id: string;
+  accountKey: string;
+  submittedBy: string;
+  payerName: string;
+  amount: number;
+  providerReference: string | null;
+  proofPath: string;
+  status: "pending" | "approved" | "rejected";
+  rejectionReason: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
 /** Day of the month after which an unpaid current month counts as overdue. */
 export const FEE_DUE_DAY = 10;
 
@@ -186,6 +201,23 @@ function mapSubscription(r: Row): LibrarySubscription {
   };
 }
 
+function mapPaymentProof(r: Row): SubscriptionPaymentProof {
+  return {
+    id: String(r["id"]),
+    accountKey: String(r["account_key"] ?? "default"),
+    submittedBy: String(r["submitted_by"]),
+    payerName: String(r["payer_name"] ?? ""),
+    amount: Number(r["amount"] ?? 499),
+    providerReference: (r["provider_reference"] as string | null) ?? null,
+    proofPath: String(r["proof_path"]),
+    status: (r["status"] as SubscriptionPaymentProof["status"]) ?? "pending",
+    rejectionReason: (r["rejection_reason"] as string | null) ?? null,
+    reviewedBy: (r["reviewed_by"] as string | null) ?? null,
+    reviewedAt: (r["reviewed_at"] as string | null) ?? null,
+    createdAt: String(r["created_at"]),
+  };
+}
+
 const DEFAULT_SETTINGS: Omit<Settings, "adminName" | "adminEmail" | "role"> = {
   libraryName: "My Study Library",
   totalSeats: 100,
@@ -200,6 +232,7 @@ interface StoreValue {
   activities: Activity[];
   settings: Settings;
   subscription: LibrarySubscription | null;
+  paymentProofs: SubscriptionPaymentProof[];
   loading: boolean;
   refresh: () => Promise<void>;
   addStudent: (s: Omit<Student, "id">) => Promise<Student | null>;
@@ -213,6 +246,16 @@ interface StoreValue {
   removePayment: (id: string) => Promise<void>;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
   confirmSubscription: (providerReference?: string) => Promise<void>;
+  submitPaymentProof: (input: {
+    file: File;
+    payerName: string;
+    providerReference?: string;
+  }) => Promise<boolean>;
+  reviewPaymentProof: (
+    id: string,
+    decision: "approved" | "rejected",
+    rejectionReason?: string,
+  ) => Promise<boolean>;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -224,6 +267,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [subscription, setSubscription] = useState<LibrarySubscription | null>(null);
+  const [paymentProofs, setPaymentProofs] = useState<SubscriptionPaymentProof[]>([]);
   const [settingsRow, setSettingsRow] = useState<{
     id: string | null;
     libraryName: string;
@@ -242,17 +286,19 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       setReservations([]);
       setActivities([]);
       setSubscription(null);
+      setPaymentProofs([]);
       setLoading(false);
       return;
     }
     setLoading(true);
-    const [st, pa, re, ac, se, sub] = await Promise.all([
+    const [st, pa, re, ac, se, sub, proofs] = await Promise.all([
       supabase.from("students").select("*").order("created_at", { ascending: false }),
       supabase.from("payments").select("*").order("paid_at", { ascending: false }),
       supabase.from("seat_reservations").select("*"),
       supabase.from("activities").select("*").order("created_at", { ascending: false }).limit(40),
       supabase.from("library_settings").select("*").limit(1).maybeSingle(),
       supabase.from("library_subscriptions").select("*").eq("account_key", "default").maybeSingle(),
+      supabase.from("subscription_payment_proofs").select("*").order("created_at", { ascending: false }),
     ]);
 
     if (st.error) console.error("Failed to load students:", st.error);
@@ -261,6 +307,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     if (ac.error) console.error("Failed to load activity:", ac.error);
     if (se.error) console.error("Failed to load settings:", se.error);
     if (sub.error) console.error("Failed to load subscription:", sub.error);
+    if (proofs.error) console.error("Failed to load payment proofs:", proofs.error);
 
     setStudents((st.data ?? []).map((r) => mapStudent(r as Row)));
     setPayments((pa.data ?? []).map((r) => mapPayment(r as Row)));
@@ -298,6 +345,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       });
     }
     setSubscription(sub.data ? mapSubscription(sub.data as Row) : null);
+    setPaymentProofs((proofs.data ?? []).map((r) => mapPaymentProof(r as Row)));
     setLoading(false);
   }, [userId]);
 
@@ -365,6 +413,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       activities,
       settings,
       subscription,
+      paymentProofs,
       loading,
       refresh,
 
@@ -551,8 +600,52 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         if (error) console.error("Failed to confirm subscription:", error);
         await refresh();
       },
+
+      submitPaymentProof: async ({ file, payerName, providerReference }) => {
+        if (!userId) return false;
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+        const path = `${userId}/${crypto.randomUUID()}-${safeName}`;
+        const { error: uploadError } = await supabase.storage
+          .from("subscription-proofs")
+          .upload(path, file, { upsert: false, contentType: file.type || undefined });
+        if (uploadError) {
+          console.error("Failed to upload payment proof:", uploadError);
+          return false;
+        }
+        const proofInsert: TablesInsert<"subscription_payment_proofs"> = {
+          submitted_by: userId,
+          payer_name: payerName.trim(),
+          amount: 499,
+          provider_reference: providerReference?.trim() || null,
+          proof_path: path,
+        };
+        const { error: proofError } = await supabase
+          .from("subscription_payment_proofs")
+          .insert(proofInsert);
+        if (proofError) {
+          console.error("Failed to save payment proof:", proofError);
+          await supabase.storage.from("subscription-proofs").remove([path]);
+          return false;
+        }
+        await refresh();
+        return true;
+      },
+
+      reviewPaymentProof: async (id, decision, rejectionReason) => {
+        const { error } = await supabase.rpc("review_subscription_payment_proof" as never, {
+          _proof_id: id,
+          _decision: decision,
+          _rejection_reason: rejectionReason?.trim() || null,
+        } as never);
+        if (error) {
+          console.error("Failed to review payment proof:", error);
+          return false;
+        }
+        await refresh();
+        return true;
+      },
     };
-  }, [students, payments, reservations, activities, settings, subscription, settingsRow, loading, refresh, log, userId]);
+  }, [students, payments, reservations, activities, settings, subscription, paymentProofs, settingsRow, loading, refresh, log, userId]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
